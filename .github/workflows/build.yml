@@ -5,7 +5,7 @@ on:
     branches: [ "**" ]
   pull_request:
     branches: [ "**" ]
-  workflow_dispatch: # Дозволяє запускати збірку вручну кнопкою на GitHub
+  workflow_dispatch: # Дозволяє запускати збірку вручну
 
 jobs:
   build:
@@ -23,3 +23,9 @@ jobs:
 
     - name: Build with Gradle
       run: gradle clean build --no-daemon
+
+    - name: Upload JAR Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: ChaosAlcohol-Plugin
+        path: build/libs/*.jar
