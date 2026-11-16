@@ -1,238 +1,153 @@
 package com.chaossmp.chaosalcohol;
 
 import org.bukkit.Bukkit;
-import org.bukkit.Color;
+import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
-import org.bukkit.Sound;
-import org.bukkit.command.Command;
-import org.bukkit.command.CommandExecutor;
-import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerItemConsumeEvent;
-import org.bukkit.inventory.ItemFlag;
+import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.ShapelessRecipe;
+import org.bukkit.inventory.ShapedRecipe;
 import org.bukkit.inventory.meta.PotionMeta;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
-import org.bukkit.potion.PotionType;
 
 import java.util.List;
 
-public final class ChaosAlcohol extends JavaPlugin implements Listener, CommandExecutor {
+public final class ChaosAlcohol extends JavaPlugin implements Listener {
 
-    private NamespacedKey itemDataKey;
+    private NamespacedKey alcoholKey;
 
     @Override
     public void onEnable() {
-        itemDataKey = new NamespacedKey(this, "chaos_alcohol_type");
+        alcoholKey = new NamespacedKey(this, "drink_type");
 
+        // Реєструємо слухач подій (вхід гравця та вживання напоїв)
         getServer().getPluginManager().registerEvents(this, this);
-        if (getCommand("alcohol") != null) {
-            getCommand("alcohol").setExecutor(this);
-        }
 
-        registerAllRecipes();
-        getLogger().info("Плагин ChaosAlcohol успешно активирован со всеми напитками!");
+        // Реєструємо точні фіксовані рецепти
+        registerRecipes();
+
+        getLogger().info("ChaosAlcohol успішно активовано з точними рецептами та ефектами!");
     }
 
     @Override
     public void onDisable() {
-        getLogger().info("ChaosAlcohol выключен.");
+        getLogger().info("ChaosAlcohol вимкнено.");
     }
 
-    // Универсальный метод создания кастомных алкогольных напитков
-    private ItemStack createAlcoholItem(String type) {
-        ItemStack bottle = new ItemStack(Material.POTION);
-        PotionMeta meta = (PotionMeta) bottle.getItemMeta();
+    private void registerRecipes() {
+        // 1. Самогонка (Пшениця, Цукор, Картопля)
+        NamespacedKey samogonKey = new NamespacedKey(this, "samogon");
+        ShapedRecipe samogonRecipe = new ShapedRecipe(samogonKey, createDrink("samogon", ChatColor.WHITE + "Самогонка", List.of(ChatColor.GRAY + "Міцний сільський напій")));
+        samogonRecipe.shape("WSW", "CPC");
+        samogonRecipe.setIngredient('W', Material.WHEAT);
+        samogonRecipe.setIngredient('S', Material.SUGAR);
+        samogonRecipe.setIngredient('P', Material.POTATO);
+        Bukkit.addRecipe(samogonRecipe);
+
+        // 2. Медовуха (Стільники, Цукор, Пляшка води)
+        NamespacedKey meadKey = new NamespacedKey(this, "mead");
+        ShapedRecipe meadRecipe = new ShapedRecipe(meadKey, createDrink("mead", ChatColor.GOLD + "Медовуха", List.of(ChatColor.GRAY + "Солодкий та зігріваючий напій")));
+        meadRecipe.shape("CSC", "SMS");
+        meadRecipe.setIngredient('C', Material.HONEYCOMB);
+        meadRecipe.setIngredient('S', Material.SUGAR);
+        meadRecipe.setIngredient('M', Material.POTION);
+        Bukkit.addRecipe(meadRecipe);
+
+        // 3. Лісова настойка (Солодкі ягоди, Світяться ягоди, Пляшка води)
+        NamespacedKey liqueurKey = new NamespacedKey(this, "liqueur");
+        ShapedRecipe liqueurRecipe = new ShapedRecipe(liqueurKey, createDrink("liqueur", ChatColor.LIGHT_PURPLE + "Лісова настойка", List.of(ChatColor.GRAY + "На пахучих лісових ягодах")));
+        liqueurRecipe.shape("SGS", " P ");
+        liqueurRecipe.setIngredient('S', Material.SWEET_BERRIES);
+        liqueurRecipe.setIngredient('G', Material.GLOW_BERRIES);
+        liqueurRecipe.setIngredient('P', Material.POTION);
+        Bukkit.addRecipe(liqueurRecipe);
+
+        // 4. Шахтарське пиво (Пшениця, Вугілля, Пляшка води)
+        NamespacedKey beerKey = new NamespacedKey(this, "beer");
+        ShapedRecipe beerRecipe = new ShapedRecipe(beerKey, createDrink("beer", ChatColor.YELLOW + "Шахтарське пиво", List.of(ChatColor.GRAY + "Додає сил під землею")));
+        beerRecipe.shape("WCW", "WPW");
+        beerRecipe.setIngredient('W', Material.WHEAT);
+        beerRecipe.setIngredient('C', Material.COAL);
+        beerRecipe.setIngredient('P', Material.POTION);
+        Bukkit.addRecipe(beerRecipe);
+
+        // 5. Драконяче дихання (Магмовий крем, Дихання дракона, Пляшка води)
+        NamespacedKey dragonKey = new NamespacedKey(this, "dragons_breath");
+        ShapedRecipe dragonRecipe = new ShapedRecipe(dragonKey, createDrink("dragons_breath", ChatColor.DARK_PURPLE + "Драконяче дихання", List.of(ChatColor.RED + "Вкрай небезпечний експеримент")));
+        dragonRecipe.shape("MDM", " P ");
+        dragonRecipe.setIngredient('M', Material.MAGMA_CREAM);
+        dragonRecipe.setIngredient('D', Material.DRAGON_BREATH);
+        dragonRecipe.setIngredient('P', Material.POTION);
+        Bukkit.addRecipe(dragonRecipe);
+    }
+
+    // Допоміжний метод для створення кастомної пляшки з унікальним тегом
+    private ItemStack createDrink(String id, String name, List<String> lore) {
+        ItemStack item = new ItemStack(Material.POTION);
+        PotionMeta meta = (PotionMeta) item.getItemMeta();
         if (meta != null) {
-            meta.addItemFlags(ItemFlag.HIDE_ADDITIONAL_TOOLTIP);
-            meta.getPersistentDataContainer().set(itemDataKey, PersistentDataType.STRING, type);
-
-            switch (type) {
-                case "samogon" -> {
-                    meta.setBasePotionType(PotionType.WEAKNESS); // Серая мутная пляшка
-                    meta.setDisplayName("§7§lСамогонка");
-                    meta.setLore(List.of(
-                            "§7Крепость: §c60°",
-                            "§7Эффекты: §aСила III (30с)",
-                            "§7Побочка: §cСильное головокружение",
-                            "",
-                            "§8Настоящий деревенский напиток!"
-                    ));
-                }
-                case "mead" -> {
-                    meta.setColor(Color.fromRGB(230, 190, 40)); // Золотистый
-                    meta.setDisplayName("§e§lМедовуха");
-                    meta.setLore(List.of(
-                            "§7Крепость: §e15°",
-                            "§7Эффекты: §aРегенерация I (20с), Спешка I (30с)",
-                            "§7Побочка: §aПочти нет, очень мягкий напиток",
-                            "",
-                            "§8Сладкое питье для строителей и фермеров."
-                    ));
-                }
-                case "liqueur" -> {
-                    meta.setColor(Color.fromRGB(160, 30, 90)); // Ярко-красный / ягодный
-                    meta.setDisplayName("§c§lЛесная Настойка");
-                    meta.setLore(List.of(
-                            "§7Крепость: §d35°",
-                            "§7Эффекты: §aНочное зрение (45с), Прыгучесть II (30с)",
-                            "§7Побочка: §cЛегкая тошнота",
-                            "",
-                            "§8Настояна на лесных и светящихся ягодах."
-                    ));
-                }
-                case "beer" -> {
-                    meta.setColor(Color.fromRGB(110, 70, 40)); // Темно-коричневый
-                    meta.setDisplayName("§6§lШахтерское Пиво");
-                    meta.setLore(List.of(
-                            "§7Крепость: §620°",
-                            "§7Эффекты: §aПоглощение (60с), Сопротивление I (30с)",
-                            "§7Побочка: §cУсталость в первые 10 секунд",
-                            "",
-                            "§8Лучший выбор перед спуском в глубокую шахту."
-                    ));
-                }
-                case "dragon_breath" -> {
-                    meta.setColor(Color.fromRGB(240, 100, 10)); // Огненно-оранжевый
-                    meta.setDisplayName("§4§lДраконье Дыхание");
-                    meta.setLore(List.of(
-                            "§7Крепость: §499°",
-                            "§7Эффекты: §aОгнестойкость (90с), Скорость II (45с)",
-                            "§7Побочка: §4Левитация и слепота",
-                            "",
-                            "§8Экстремальный эликсир для безумцев."
-                    ));
-                }
-            }
-            bottle.setItemMeta(meta);
+            meta.setDisplayName(name);
+            meta.setLore(lore);
+            meta.getPersistentDataContainer().set(alcoholKey, PersistentDataType.STRING, id);
+            item.setItemMeta(meta);
         }
-        return bottle;
+        return item;
     }
 
-    // Регистрация крафтов для всех напитков
-    private void registerAllRecipes() {
-        // 1. Самогонка (Пляшка води + цукор + пшениця + картопля)
-        ShapelessRecipe samogon = new ShapelessRecipe(new NamespacedKey(this, "craft_samogon"), createAlcoholItem("samogon"));
-        samogon.addIngredient(Material.POTION);
-        samogon.addIngredient(Material.SUGAR);
-        samogon.addIngredient(Material.WHEAT);
-        samogon.addIngredient(Material.POTATO);
-        Bukkit.addRecipe(samogon);
-
-        // 2. Медовуха (Пляшка води + 2x Медові стільники + цукор)
-        ShapelessRecipe mead = new ShapelessRecipe(new NamespacedKey(this, "craft_mead"), createAlcoholItem("mead"));
-        mead.addIngredient(Material.POTION);
-        mead.addIngredient(Material.HONEYCOMB);
-        mead.addIngredient(Material.HONEYCOMB);
-        mead.addIngredient(Material.SUGAR);
-        Bukkit.addRecipe(mead);
-
-        // 3. Ягідна наливка (Пляшка води + 2x Солодкі ягоди + Світяться ягоди)
-        ShapelessRecipe liqueur = new ShapelessRecipe(new NamespacedKey(this, "craft_liqueur"), createAlcoholItem("liqueur"));
-        liqueur.addIngredient(Material.POTION);
-        liqueur.addIngredient(Material.SWEET_BERRIES);
-        liqueur.addIngredient(Material.SWEET_BERRIES);
-        liqueur.addIngredient(Material.GLOW_BERRIES);
-        Bukkit.addRecipe(liqueur);
-
-        // 4. Шахтарське пиво (Пляшка води + 3x Пшениця + Вугілля)
-        ShapelessRecipe beer = new ShapelessRecipe(new NamespacedKey(this, "craft_beer"), createAlcoholItem("beer"));
-        beer.addIngredient(Material.POTION);
-        beer.addIngredient(Material.WHEAT);
-        beer.addIngredient(Material.WHEAT);
-        beer.addIngredient(Material.WHEAT);
-        beer.addIngredient(Material.COAL);
-        Bukkit.addRecipe(beer);
-
-        // 5. Драконівський подих (Готовий Самогон + Дихання дракона + Магма-крем)
-        ShapelessRecipe dragon = new ShapelessRecipe(new NamespacedKey(this, "craft_dragon"), createAlcoholItem("dragon_breath"));
-        dragon.addIngredient(Material.POTION);
-        dragon.addIngredient(Material.DRAGON_BREATH);
-        dragon.addIngredient(Material.MAGMA_CREAM);
-        Bukkit.addRecipe(dragon);
+    // Автоматичне відкриття всіх рецептів гравцю одразу при вході на сервер
+    @EventHandler
+    public void onPlayerJoin(PlayerJoinEvent event) {
+        Player player = event.getPlayer();
+        player.discoverRecipe(new NamespacedKey(this, "samogon"));
+        player.discoverRecipe(new NamespacedKey(this, "mead"));
+        player.discoverRecipe(new NamespacedKey(this, "liqueur"));
+        player.discoverRecipe(new NamespacedKey(this, "beer"));
+        player.discoverRecipe(new NamespacedKey(this, "dragons_breath"));
     }
 
-    // Адмін-команда для видачі: /alcohol <samogon/mead/liqueur/beer/dragon>
-    @Override
-    public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
-        if (!(sender instanceof Player player)) {
-            sender.sendMessage("Только для игроков!");
-            return true;
-        }
-
-        if (!player.hasPermission("chaosalcohol.admin") && !player.isOp()) {
-            player.sendMessage("§cУ вас нет прав!");
-            return true;
-        }
-
-        if (args.length == 0) {
-            player.sendMessage("§eИспользование: §7/alcohol <samogon | mead | liqueur | beer | dragon>");
-            return true;
-        }
-
-        String type = args[0].toLowerCase();
-        ItemStack item = createAlcoholItem(type);
-        
-        if (item.getItemMeta() != null && item.getItemMeta().getDisplayName() != null) {
-            player.getInventory().addItem(item);
-            player.sendMessage("§aВы получили напиток: " + item.getItemMeta().getDisplayName());
-        } else {
-            player.sendMessage("§cНеизвестный тип напитка! Доступно: samogon, mead, liqueur, beer, dragon");
-        }
-        return true;
-    }
-
-    // Обработка употребления напитков и их эффектов
+    // Обробка ефектів під час вживання кастомних напоїв
     @EventHandler
     public void onConsume(PlayerItemConsumeEvent event) {
         ItemStack item = event.getItem();
-        if (item.getType() != Material.POTION || !item.hasItemMeta()) return;
+        if (!item.hasItemMeta()) return;
 
         PotionMeta meta = (PotionMeta) item.getItemMeta();
-        String type = meta.getPersistentDataContainer().get(itemDataKey, PersistentDataType.STRING);
-        if (type == null) return;
+        String drinkId = meta.getPersistentDataContainer().get(alcoholKey, PersistentDataType.STRING);
+        if (drinkId == null) return; // Пропускаємо звичайні зенілки
 
         Player player = event.getPlayer();
-        player.playSound(player.getLocation(), Sound.ENTITY_GENERIC_DRINK, 1f, 0.7f);
 
-        switch (type) {
-            case "samogon" -> {
-                player.addPotionEffect(new PotionEffect(PotionEffectType.STRENGTH, 20 * 30, 2)); // Сила III
-                player.addPotionEffect(new PotionEffect(PotionEffectType.NAUSEA, 20 * 20, 0));   // Тошнота
-                player.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS, 20 * 10, 0)); // Замедление
-                player.sendMessage("§6*Ух, крепкая!* §7Голову повело, но в руках появилась дикая сила!");
-            }
-            case "mead" -> {
-                player.addPotionEffect(new PotionEffect(PotionEffectType.REGENERATION, 20 * 20, 0));
-                player.addPotionEffect(new PotionEffect(PotionEffectType.HASTE, 20 * 30, 0)); // Спешка
-                player.sendMessage("§e*Сладко и тепло.* §7Тело расслабилось, работать станет легче!");
-            }
-            case "liqueur" -> {
-                player.addPotionEffect(new PotionEffect(PotionEffectType.NIGHT_VISION, 20 * 45, 0));
-                player.addPotionEffect(new PotionEffect(PotionEffectType.JUMP_BOOST, 20 * 30, 1));
-                player.addPotionEffect(new PotionEffect(PotionEffectType.NAUSEA, 20 * 5, 0));
-                player.sendMessage("§c*Ягодный вкус!* §7В темноте стало все видно, и будто тянет прыгать!");
-            }
-            case "beer" -> {
-                player.addPotionEffect(new PotionEffect(PotionEffectType.ABSORPTION, 20 * 60, 0));
-                player.addPotionEffect(new PotionEffect(PotionEffectType.RESISTANCE, 20 * 30, 0));
-                player.addPotionEffect(new PotionEffect(PotionEffectType.MINING_FATIGUE, 20 * 10, 0)); // Усталость в начале
-                player.sendMessage("§6*Горьковато.* §7Броня крепчает, но сначала нужно немного разогреться.");
-            }
-            case "dragon_breath" -> {
-                player.addPotionEffect(new PotionEffect(PotionEffectType.FIRE_RESISTANCE, 20 * 90, 0));
-                player.addPotionEffect(new PotionEffect(PotionEffectType.SPEED, 20 * 45, 1));
-                player.addPotionEffect(new PotionEffect(PotionEffectType.LEVITATION, 20 * 3, 0)); // Подкидывает вверх
-                player.addPotionEffect(new PotionEffect(PotionEffectType.BLINDNESS, 20 * 5, 0));
-                player.sendMessage("§4*ПОЛНЫЙ ДЫМ!* §7Глаза выжигает, но теперь вам не страшен ни огонь, ни враги!");
-            }
+        // Видаємо ефекти відповідно до обраного напою
+        switch (drinkId) {
+            case "samogon":
+                // Сила III (ампліфікатор 2 = рівень 3) на 30 секунд (600 тіків)
+                player.addPotionEffect(new PotionEffect(PotionEffectType.STRENGTH, 600, 2, false, true, true));
+                // Нудота на 15 секунд (300 тіків)
+                player.addPotionEffect(new PotionEffect(PotionEffectType.NAUSEA, 300, 0, false, true, true));
+                break;
+            case "mead":
+                player.addPotionEffect(new PotionEffect(PotionEffectType.RESISTANCE, 800, 1, false, true, true));
+                player.addPotionEffect(new PotionEffect(PotionEffectType.REGENERATION, 200, 0, false, true, true));
+                break;
+            case "liqueur":
+                player.addPotionEffect(new PotionEffect(PotionEffectType.SPEED, 600, 1, false, true, true));
+                player.addPotionEffect(new PotionEffect(PotionEffectType.JUMP_BOOST, 600, 1, false, true, true));
+                break;
+            case "beer":
+                player.addPotionEffect(new PotionEffect(PotionEffectType.HASTE, 1200, 1, false, true, true));
+                player.addPotionEffect(new PotionEffect(PotionEffectType.NIGHT_VISION, 1200, 0, false, true, true));
+                break;
+            case "dragons_breath":
+                player.addPotionEffect(new PotionEffect(PotionEffectType.FIRE_RESISTANCE, 1200, 0, false, true, true));
+                player.addPotionEffect(new PotionEffect(PotionEffectType.ABSORPTION, 600, 2, false, true, true));
+                break;
         }
     }
 }
