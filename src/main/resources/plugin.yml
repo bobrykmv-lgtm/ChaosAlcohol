@@ -1,0 +1,4 @@
+name: ChaosAlcohol
+version: 1.0
+main: com.chaossmp.chaosalcohol.ChaosAlcohol
+api-version: '1.21'
